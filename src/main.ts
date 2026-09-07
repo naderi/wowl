@@ -15,6 +15,8 @@ interface Settings {
   theme: string;
   language: string;
   unsplash_key: string;
+  pixabay_key: string;
+  wallhaven_key: string;
   last_save_dir: string;
 }
 
@@ -90,12 +92,18 @@ const configPathEl = $("config-path");
 
 const fProvider = $<HTMLSelectElement>("f-provider");
 const fUnsplashKey = $<HTMLInputElement>("f-unsplash-key");
+const fPixabayKey = $<HTMLInputElement>("f-pixabay-key");
+const fWallhavenKey = $<HTMLInputElement>("f-wallhaven-key");
 const fTerms = $<HTMLInputElement>("f-terms");
 const fHistory = $<HTMLInputElement>("f-history");
 const fHistoryMode = $<HTMLSelectElement>("f-history-mode");
 const fTheme = $<HTMLSelectElement>("f-theme");
 const fLanguage = $<HTMLSelectElement>("f-language");
-const fieldKey = $("field-key");
+const keyFields: Record<string, HTMLElement> = {
+  unsplash: $("field-key-unsplash"),
+  pixabay: $("field-key-pixabay"),
+  wallhaven: $("field-key-wallhaven"),
+};
 const termsHint = $("terms-hint");
 
 /* ===== State ===== */
@@ -634,7 +642,9 @@ function providerById(id: string): ProviderInfo | undefined {
 
 function syncProviderDependentUi() {
   const p = providerById(fProvider.value);
-  fieldKey.classList.toggle("is-hidden", !p?.needsKey);
+  for (const [id, el] of Object.entries(keyFields)) {
+    el.classList.toggle("is-hidden", id !== fProvider.value);
+  }
   const searchable = p?.supportsSearch ?? false;
   fTerms.disabled = !searchable;
   termsHint.textContent = searchable ? t("hint.terms") : t("hint.noSearch");
@@ -643,6 +653,8 @@ function syncProviderDependentUi() {
 function fillForm() {
   fProvider.value = settings.provider;
   fUnsplashKey.value = settings.unsplash_key;
+  fPixabayKey.value = settings.pixabay_key;
+  fWallhavenKey.value = settings.wallhaven_key;
   fTerms.value = settings.search_terms;
   fHistory.value = String(settings.history_size);
   fHistoryMode.value = settings.history_mode;
@@ -655,6 +667,8 @@ function readForm(): Settings {
   return {
     provider: fProvider.value,
     unsplash_key: fUnsplashKey.value.trim(),
+    pixabay_key: fPixabayKey.value.trim(),
+    wallhaven_key: fWallhavenKey.value.trim(),
     search_terms: fTerms.value,
     history_size: Math.max(0, Math.min(500, parseInt(fHistory.value || "0", 10) || 0)),
     history_mode: fHistoryMode.value,
@@ -875,6 +889,8 @@ async function init() {
       theme: "system",
       language: "en",
       unsplash_key: "",
+      pixabay_key: "",
+      wallhaven_key: "",
       last_save_dir: "",
     };
     providers = [];

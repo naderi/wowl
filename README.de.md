@@ -18,7 +18,7 @@ Windows ist bereits verfügbar — siehe [Releases](https://github.com/naderi/wo
 
 ## Funktionen
 
-- **Bildquellen**: Unsplash (mit Suche), Bing – Bild des Tages, Lorem Picsum
+- **Bildquellen**: Unsplash, Pixabay und Wallhaven (mit Suche), Bing – Bild des Tages, Lorem Picsum
 - **Ein Klick aufs Bild** lädt das nächste; **Pfeile / ← →** blättern durch den Verlauf
 - **Als Hintergrund** und **Als Sperrbildschirm** setzen (Windows)
 - **Bild spiegeln** (horizontal) per Rechtsklick
@@ -31,22 +31,21 @@ Windows ist bereits verfügbar — siehe [Releases](https://github.com/naderi/wo
 
 ## Bildquellen
 
-| Quelle                    | Suche |      API-Key       | Auflösung                      |
-| ------------------------- | :---: | :----------------: | ------------------------------ |
-| **Unsplash**              |   ✅   | eigener Access Key | Monitor-Auflösung              |
-| **Bing – Bild des Tages** |   –   |         –          | UHD (3840×2160), letzte 8 Tage |
-| **Lorem Picsum**          |   –   |         –          | Monitor-Auflösung              |
+| Quelle                    | Suche |            API-Key            | Auflösung                      |
+| ------------------------- | :---: | :--------------------------: | ------------------------------ |
+| **Unsplash**              |   ✅   |      eigener Access Key       | Monitor-Auflösung              |
+| **Pixabay**               |   ✅   |      eigener API-Schlüssel    | bis Full HD                    |
+| **Wallhaven**             |   ✅   | optional (höhere Limits)     | ≥ Full HD, bis 4K+             |
+| **Bing – Bild des Tages** |   –   |              –               | UHD (3840×2160), letzte 8 Tage |
+| **Lorem Picsum**          |   –   |              –               | Monitor-Auflösung              |
 
-### Warum Unsplash einen eigenen API-Schlüssel braucht
+### Warum Unsplash und Pixabay einen eigenen API-Schlüssel brauchen
 
-Unsplash begrenzt die API-Nutzung pro Anwendung, nicht pro Endnutzer – ein in Wowl fest eingebauter Schlüssel würde von allen, die die App heruntergeladen haben, gemeinsam genutzt und das Anfragelimit von Unsplash für alle innerhalb von Minuten erreichen. Einen privaten Schlüssel in einer öffentlich verteilten App auszuliefern verstößt außerdem gegen die Nutzungsbedingungen von Unsplash. Ein eigener, kostenloser Schlüssel hält die eigene Nutzung von der aller anderen getrennt und ist in einer Minute erstellt:
+Unsplash und Pixabay begrenzen die API-Nutzung pro Anwendung, nicht pro Endnutzer – ein in Wowl fest eingebauter Schlüssel würde von allen, die die App heruntergeladen haben, gemeinsam genutzt und das Anfragelimit für alle innerhalb von Minuten erreichen. Einen privaten Schlüssel in einer öffentlich verteilten App auszuliefern verstößt außerdem gegen deren Nutzungsbedingungen. Ein eigener, kostenloser Schlüssel hält die eigene Nutzung von der aller anderen getrennt und ist in einer Minute erstellt:
 
-1. Auf [unsplash.com/developers](https://unsplash.com/developers) eine kostenlose App anlegen
-2. Den **Access Key** kopieren
-3. In Wowl: Einstellungen → Quelle „Unsplash" → Key eintragen
-
-Demo-Apps von Unsplash sind auf **50 Anfragen/Stunde** begrenzt; für mehr in der
-Unsplash-App „Production"-Zugang beantragen.
+- **Unsplash**: auf [unsplash.com/developers](https://unsplash.com/developers) eine kostenlose App anlegen, den **Access Key** kopieren, in Wowl unter Einstellungen → Quelle „Unsplash" eintragen. Demo-Apps sind auf **50 Anfragen/Stunde** begrenzt; für mehr „Production"-Zugang beantragen.
+- **Pixabay**: den Schlüssel nach dem Anmelden unter [pixabay.com/api/docs](https://pixabay.com/api/docs) kopieren und unter Einstellungen → Quelle „Pixabay" eintragen. Limit: **100 Anfragen/Minute**.
+- **Wallhaven**: funktioniert ohne Schlüssel. Ein Schlüssel von [wallhaven.cc/settings/account](https://wallhaven.cc/settings/account) erhöht nur das Anfragelimit.
 
 ## Nutzung
 

@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default)]
 pub struct Settings {
-    /// Active image provider id: `picsum` | `unsplash` | `bing`.
+    /// Active image provider id: `picsum` | `unsplash` | `bing` | `pixabay` |
+    /// `wallhaven`.
     pub provider: String,
     /// Raw search-term text as typed by the user, separated by `,` or `;`.
     pub search_terms: String,
@@ -24,6 +25,10 @@ pub struct Settings {
     pub language: String,
     /// User-supplied Unsplash access key.
     pub unsplash_key: String,
+    /// User-supplied Pixabay API key.
+    pub pixabay_key: String,
+    /// User-supplied Wallhaven API key (optional — only lifts rate limits).
+    pub wallhaven_key: String,
     /// Last folder used in the "save as" dialog.
     pub last_save_dir: String,
 }
@@ -38,6 +43,8 @@ impl Default for Settings {
             theme: "system".into(),
             language: "en".into(),
             unsplash_key: String::new(),
+            pixabay_key: String::new(),
+            wallhaven_key: String::new(),
             last_save_dir: String::new(),
         }
     }

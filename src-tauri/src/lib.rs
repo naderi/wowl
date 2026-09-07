@@ -82,6 +82,18 @@ fn list_providers() -> Vec<ProviderInfo> {
             supports_search: false,
             needs_key: false,
         },
+        ProviderInfo {
+            id: "pixabay",
+            label: "Pixabay",
+            supports_search: true,
+            needs_key: true,
+        },
+        ProviderInfo {
+            id: "wallhaven",
+            label: "Wallhaven",
+            supports_search: true,
+            needs_key: false,
+        },
     ]
 }
 
@@ -95,13 +107,7 @@ async fn next_photo(
     let target = target_resolution(&app);
 
     let photo = provider
-        .fetch(
-            &state.client,
-            &settings.terms(),
-            &settings.unsplash_key,
-            &settings.language,
-            target,
-        )
+        .fetch(&state.client, &settings, target)
         .await
         .map_err(|e| e.to_string())?;
 

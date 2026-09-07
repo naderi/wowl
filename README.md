@@ -18,7 +18,7 @@ Windows is available now — see [Releases](https://github.com/naderi/wowl/relea
 
 ## Features
 
-- **Image sources**: Unsplash (with search), Bing – Picture of the Day, Lorem Picsum
+- **Image sources**: Unsplash, Pixabay and Wallhaven (with search), Bing – Picture of the Day, Lorem Picsum
 - **Click the image** to load the next one; **arrow keys / ← →** browse history
 - **Set as wallpaper** and **set as lock screen** (Windows)
 - **Flip image** (horizontal) via right-click
@@ -31,21 +31,21 @@ Windows is available now — see [Releases](https://github.com/naderi/wowl/relea
 
 ## Image sources
 
-| Source                        | Search |        API key        | Resolution                    |
-| ------------------------------ | :---: | :--------------------: | ------------------------------ |
-| **Unsplash**                   |   ✅   |  your own access key   | Monitor resolution             |
-| **Bing – Picture of the Day**  |   –   |            –            | UHD (3840×2160), last 8 days   |
-| **Lorem Picsum**                |   –   |            –            | Monitor resolution             |
+| Source                        | Search |          API key           | Resolution                    |
+| ------------------------------ | :---: | :-------------------------: | ------------------------------ |
+| **Unsplash**                   |   ✅   |     your own access key     | Monitor resolution             |
+| **Pixabay**                    |   ✅   |      your own API key       | up to Full HD                  |
+| **Wallhaven**                  |   ✅   | optional (higher limits)    | ≥ Full HD, up to 4K+           |
+| **Bing – Picture of the Day**  |   –   |             –              | UHD (3840×2160), last 8 days   |
+| **Lorem Picsum**                |   –   |             –              | Monitor resolution             |
 
-### Why Unsplash needs its own API key
+### Why Unsplash and Pixabay need their own API key
 
-Unsplash rate-limits API access per application, not per end user — a key bundled into Wowl itself would be shared by everyone who downloaded the app and would hit Unsplash's request limit for all of them within minutes. Shipping a private key inside a publicly distributed app is also against Unsplash's terms. Getting your own free key keeps your usage separate from everyone else's and only takes a minute:
+Unsplash and Pixabay rate-limit API access per application, not per end user — a key bundled into Wowl itself would be shared by everyone who downloaded the app and would hit the request limit for all of them within minutes. Shipping a private key inside a publicly distributed app is also against their terms. Getting your own free key keeps your usage separate from everyone else's and only takes a minute:
 
-1. Create a free app at [unsplash.com/developers](https://unsplash.com/developers)
-2. Copy the **Access Key**
-3. In Wowl: Settings → source "Unsplash" → paste the key
-
-Unsplash's demo apps are limited to **50 requests/hour**; apply for "Production" access in the Unsplash app for more.
+- **Unsplash**: create a free app at [unsplash.com/developers](https://unsplash.com/developers), copy the **Access Key**, then in Wowl: Settings → source "Unsplash" → paste the key. Demo apps are limited to **50 requests/hour**; apply for "Production" access for more.
+- **Pixabay**: sign in and copy your key from [pixabay.com/api/docs](https://pixabay.com/api/docs), then paste it under Settings → source "Pixabay". Limit: **100 requests/minute**.
+- **Wallhaven**: works without a key. A key from [wallhaven.cc/settings/account](https://wallhaven.cc/settings/account) only raises the request limit.
 
 ## Usage
 

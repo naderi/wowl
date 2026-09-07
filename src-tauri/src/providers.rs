@@ -4,6 +4,8 @@ use rand::Rng;
 use reqwest::Client;
 use serde::Serialize;
 
+use crate::config::Settings;
+
 /// A single photo returned by a provider, with everything the UI needs to show
 /// credit and everything the backend needs to download the full image.
 #[derive(Serialize, Clone, Debug)]
@@ -28,6 +30,8 @@ pub enum Provider {
     Picsum,
     Unsplash,
     Bing,
+    Pixabay,
+    Wallhaven,
 }
 
 impl Provider {
@@ -35,6 +39,8 @@ impl Provider {
         match id {
             "unsplash" => Provider::Unsplash,
             "bing" => Provider::Bing,
+            "pixabay" => Provider::Pixabay,
+            "wallhaven" => Provider::Wallhaven,
             _ => Provider::Picsum,
         }
     }
@@ -45,32 +51,56 @@ impl Provider {
             Provider::Picsum => "picsum",
             Provider::Unsplash => "unsplash",
             Provider::Bing => "bing",
+            Provider::Pixabay => "pixabay",
+            Provider::Wallhaven => "wallhaven",
         }
     }
 
     pub fn supports_search(&self) -> bool {
-        matches!(self, Provider::Unsplash)
+        matches!(
+            self,
+            Provider::Unsplash | Provider::Pixabay | Provider::Wallhaven
+        )
     }
 
     /// Fetch metadata for one image. `target` is the desired pixel size
-    /// (usually the primary monitor resolution); `lang` is `de` | `en`.
+    /// (usually the primary monitor resolution).
     pub async fn fetch(
         &self,
         client: &Client,
-        terms: &[String],
-        unsplash_key: &str,
-        lang: &str,
+        settings: &Settings,
         target: (u32, u32),
     ) -> Result<Photo> {
+        let terms = settings.terms();
         match self {
             Provider::Picsum => fetch_picsum(client, target).await,
-            Provider::Unsplash => fetch_unsplash(client, terms, unsplash_key, target).await,
-            Provider::Bing => fetch_bing(client, lang, target).await,
+            Provider::Unsplash => {
+                fetch_unsplash(client, &terms, settings.unsplash_key.trim(), target).await
+            }
+            Provider::Bing => fetch_bing(client, &settings.language, target).await,
+            Provider::Pixabay => {
+                fetch_pixabay(client, &terms, settings.pixabay_key.trim()).await
+            }
+            Provider::Wallhaven => {
+                fetch_wallhaven(client, &terms, settings.wallhaven_key.trim(), target).await
+            }
         }
     }
 }
 
 const UTM: &str = "utm_source=Wowl&utm_medium=referral";
+
+/// Append the Unsplash referral UTM parameters to any link that points at
+/// unsplash.com (required by the Unsplash API guidelines). Links to other hosts
+/// are returned unchanged.
+fn unsplash_utm(url: &str) -> String {
+    if url.contains("://unsplash.com/") || url.contains("://www.unsplash.com/") {
+        let sep = if url.contains('?') { '&' } else { '?' };
+        format!("{url}{sep}{UTM}")
+    } else {
+        url.to_string()
+    }
+}
 
 #[derive(serde::Deserialize)]
 struct PicsumItem {
@@ -101,14 +131,17 @@ async fn fetch_picsum(client: &Client, target: (u32, u32)) -> Result<Photo> {
     };
 
     let (w, h) = target;
+    // Picsum's `url` points at the original photo page on Unsplash — add the
+    // referral UTM params the Unsplash guidelines ask for.
+    let page = unsplash_utm(&item.url);
     Ok(Photo {
         id: format!("picsum-{}", item.id),
         provider: "picsum".into(),
         width: w,
         height: h,
         photographer: item.author.clone(),
-        photographer_url: Some(item.url.clone()),
-        source_url: Some(item.url.clone()),
+        photographer_url: Some(page.clone()),
+        source_url: Some(page),
         image_url: format!("https://picsum.photos/id/{}/{}/{}", item.id, w, h),
         download_trigger: None,
     })
@@ -261,6 +294,193 @@ async fn fetch_bing(client: &Client, lang: &str, target: (u32, u32)) -> Result<P
             img.copyrightlink
         }),
         image_url,
+        download_trigger: None,
+    })
+}
+
+/* ===================== Pixabay ===================== */
+
+#[derive(serde::Deserialize)]
+struct PixabayResponse {
+    hits: Vec<PixabayHit>,
+}
+#[derive(serde::Deserialize)]
+struct PixabayHit {
+    id: u64,
+    #[serde(rename = "pageURL")]
+    page_url: String,
+    #[serde(rename = "largeImageURL")]
+    large_image_url: String,
+    /// Only present for accounts with full API access; fall back to the large URL.
+    #[serde(rename = "fullHDURL", default)]
+    full_hd_url: Option<String>,
+    #[serde(rename = "imageURL", default)]
+    image_url: Option<String>,
+    user: String,
+    user_id: u64,
+}
+
+async fn fetch_pixabay(client: &Client, terms: &[String], key: &str) -> Result<Photo> {
+    if key.is_empty() {
+        return Err(anyhow!("Pixabay API key missing — add it in the settings"));
+    }
+
+    let mut query: Vec<(&str, String)> = vec![
+        ("key", key.to_string()),
+        ("image_type", "photo".into()),
+        ("orientation", "horizontal".into()),
+        ("safesearch", "true".into()),
+        ("per_page", "200".into()),
+    ];
+    if !terms.is_empty() {
+        query.push(("q", terms.join(" ")));
+    }
+
+    let resp = client
+        .get("https://pixabay.com/api/")
+        .query(&query)
+        .send()
+        .await?;
+    match resp.status() {
+        reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::BAD_REQUEST => {
+            return Err(anyhow!("Pixabay rejected the API key"))
+        }
+        reqwest::StatusCode::TOO_MANY_REQUESTS => {
+            return Err(anyhow!("Pixabay rate limit reached — try again later"))
+        }
+        _ => {}
+    }
+    let body: PixabayResponse = resp.error_for_status()?.json().await?;
+
+    let item = {
+        let mut rng = rand::thread_rng();
+        body.hits
+            .choose(&mut rng)
+            .ok_or_else(|| anyhow!("Pixabay returned no images"))?
+    };
+
+    let image_url = item
+        .full_hd_url
+        .clone()
+        .or_else(|| item.image_url.clone())
+        .unwrap_or_else(|| item.large_image_url.clone());
+
+    Ok(Photo {
+        id: format!("pixabay-{}", item.id),
+        provider: "pixabay".into(),
+        width: 0,
+        height: 0,
+        photographer: item.user.clone(),
+        photographer_url: Some(format!(
+            "https://pixabay.com/users/{}-{}/",
+            item.user, item.user_id
+        )),
+        source_url: Some(item.page_url.clone()),
+        image_url,
+        download_trigger: None,
+    })
+}
+
+/* ===================== Wallhaven ===================== */
+
+#[derive(serde::Deserialize)]
+struct WallhavenSearch {
+    data: Vec<WallhavenItem>,
+}
+#[derive(serde::Deserialize)]
+struct WallhavenItem {
+    id: String,
+    /// Wallpaper page, e.g. `https://wallhaven.cc/w/<id>`.
+    url: String,
+    /// Direct full-image URL.
+    path: String,
+}
+#[derive(serde::Deserialize)]
+struct WallhavenDetailResponse {
+    data: WallhavenDetail,
+}
+#[derive(serde::Deserialize)]
+struct WallhavenDetail {
+    uploader: Option<WallhavenUploader>,
+}
+#[derive(serde::Deserialize)]
+struct WallhavenUploader {
+    username: String,
+}
+
+async fn fetch_wallhaven(
+    client: &Client,
+    terms: &[String],
+    key: &str,
+    target: (u32, u32),
+) -> Result<Photo> {
+    let (w, h) = target;
+    let atleast = format!("{}x{}", w.min(1920), h.min(1080));
+    let mut query: Vec<(&str, String)> = vec![
+        ("categories", "100".into()), // general only
+        ("purity", "100".into()),     // SFW only
+        ("sorting", "random".into()),
+        ("ratios", "landscape".into()),
+        ("atleast", atleast),
+    ];
+    if !terms.is_empty() {
+        query.push(("q", terms.join(" ")));
+    }
+    if !key.is_empty() {
+        query.push(("apikey", key.to_string()));
+    }
+
+    let resp = client
+        .get("https://wallhaven.cc/api/v1/search")
+        .query(&query)
+        .send()
+        .await?;
+    match resp.status() {
+        reqwest::StatusCode::UNAUTHORIZED => {
+            return Err(anyhow!("Wallhaven rejected the API key"))
+        }
+        reqwest::StatusCode::TOO_MANY_REQUESTS => {
+            return Err(anyhow!("Wallhaven rate limit reached — try again later"))
+        }
+        _ => {}
+    }
+    let search: WallhavenSearch = resp.error_for_status()?.json().await?;
+
+    let item = {
+        let mut rng = rand::thread_rng();
+        search
+            .data
+            .choose(&mut rng)
+            .ok_or_else(|| anyhow!("Wallhaven returned no wallpapers"))?
+    };
+
+    // Search results carry no uploader — a second call to the per-wallpaper
+    // endpoint fills it in for attribution. Failure here is non-fatal.
+    let mut photographer = String::new();
+    let mut photographer_url = None;
+    let detail_url = format!("https://wallhaven.cc/api/v1/w/{}", item.id);
+    let mut detail_req = client.get(&detail_url);
+    if !key.is_empty() {
+        detail_req = detail_req.query(&[("apikey", key)]);
+    }
+    if let Ok(resp) = detail_req.send().await {
+        if let Ok(detail) = resp.json::<WallhavenDetailResponse>().await {
+            if let Some(u) = detail.data.uploader {
+                photographer_url = Some(format!("https://wallhaven.cc/user/{}", u.username));
+                photographer = u.username;
+            }
+        }
+    }
+
+    Ok(Photo {
+        id: format!("wallhaven-{}", item.id),
+        provider: "wallhaven".into(),
+        width: 0,
+        height: 0,
+        photographer,
+        photographer_url,
+        source_url: Some(item.url.clone()),
+        image_url: item.path.clone(),
         download_trigger: None,
     })
 }
