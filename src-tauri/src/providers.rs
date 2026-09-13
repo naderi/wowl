@@ -424,7 +424,10 @@ async fn fetch_wallhaven(
         ("atleast", atleast),
     ];
     if !terms.is_empty() {
-        query.push(("q", terms.join(" ")));
+        // Wallhaven treats a space-separated `q` as AND (all terms must
+        // match), unlike Unsplash's relevance search — join with `|` (OR)
+        // so multiple terms don't collapse the result set to near-zero.
+        query.push(("q", terms.join("|")));
     }
     if !key.is_empty() {
         query.push(("apikey", key.to_string()));
