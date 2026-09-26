@@ -31,6 +31,10 @@ pub struct Settings {
     pub wallhaven_key: String,
     /// Last folder used in the "save as" dialog.
     pub last_save_dir: String,
+    /// Look for a new release at startup (at most once a day).
+    pub auto_check_updates: bool,
+    /// Unix seconds of the last update check.
+    pub last_update_check: i64,
 }
 
 impl Default for Settings {
@@ -46,6 +50,8 @@ impl Default for Settings {
             pixabay_key: String::new(),
             wallhaven_key: String::new(),
             last_save_dir: String::new(),
+            auto_check_updates: true,
+            last_update_check: 0,
         }
     }
 }

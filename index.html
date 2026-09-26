@@ -77,6 +77,13 @@
                     <path d="M12 15V3" />
                   </svg>
                 </button>
+                <button class="icon-btn" id="btn-about" data-i18n-title="toolbar.about">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 16v-4.5M12 8h.01" />
+                  </svg>
+                  <span class="update-dot" id="update-dot" aria-hidden="true" hidden></span>
+                </button>
               </div>
               <div class="credit" id="credit" data-tauri-drag-region>
                 <span class="credit__line" id="credit-source-line" data-tauri-drag-region hidden
@@ -196,6 +203,14 @@
                 </select>
               </label>
 
+              <label class="field">
+                <span class="field__label" data-i18n="field.updates"></span>
+                <select id="f-updates">
+                  <option value="auto" data-i18n="updates.auto"></option>
+                  <option value="manual" data-i18n="updates.manual"></option>
+                </select>
+              </label>
+
               <div class="field">
                 <span class="field__label" data-i18n="field.lockscreen"></span>
                 <button type="button" class="secondary-btn" id="btn-reset-lockscreen" data-i18n="settings.resetLockscreen"></button>
@@ -234,6 +249,34 @@
           </div>
 
           <footer class="panel__foot" id="config-path"></footer>
+        </section>
+      </div>
+    </div>
+
+    <div class="about" id="about" hidden>
+      <div class="about__card" role="dialog" aria-modal="true" aria-labelledby="about-title">
+        <button type="button" class="about__close" id="about-close" data-i18n-title="about.close">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+        <img class="about__logo" src="/src-tauri/icons/128x128.png" alt="" />
+        <h2 class="about__title" id="about-title">Wowl <span class="about__version" id="about-version"></span></h2>
+        <p class="about__tag" data-i18n="about.tagline"></p>
+        <p class="about__meta" data-i18n="about.credit"></p>
+        <p><a class="about__link" id="about-link" href="https://github.com/naderi/wowl">github.com/naderi/wowl</a></p>
+        <section class="about__update" id="about-update" aria-live="polite" hidden>
+          <button type="button" class="secondary-btn" id="about-check-update"></button>
+          <div class="about__status" id="about-update-status" hidden></div>
+          <div class="about__notes" id="about-update-notes" hidden></div>
+          <div class="about__progress" id="about-update-progress" hidden>
+            <div class="about__track"><div class="about__bar" id="about-update-progress-bar"></div></div>
+            <span class="about__percent" id="about-update-progress-text">0%</span>
+          </div>
+          <div class="about__actions" id="about-update-actions" hidden>
+            <button type="button" class="secondary-btn" id="about-update-secondary"></button>
+            <button type="button" class="secondary-btn secondary-btn--primary" id="about-update-primary"></button>
+          </div>
         </section>
       </div>
     </div>

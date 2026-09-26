@@ -2202,6 +2202,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
+name = "minisign-verify"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22f9645cb765ea72b8111f36c522475d2daa0d22c957a9826437e97534bc4e9e"
+
+[[package]]
 name = "miniz_oxide"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5480,15 +5486,17 @@ checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
 name = "wowl"
-version = "1.1.1"
+version = "1.2.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
  "chrono",
  "directories",
  "image",
+ "minisign-verify",
  "rand 0.8.8",
  "reqwest 0.12.28",
+ "semver",
  "serde",
  "serde_json",
  "tauri",

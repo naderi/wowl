@@ -1,6 +1,7 @@
 mod config;
 mod history;
 mod providers;
+mod update;
 
 use std::fs;
 use std::sync::Mutex;
@@ -12,6 +13,7 @@ use serde::Serialize;
 use config::Settings;
 use history::HistoryEntry;
 use providers::{Photo, Provider};
+use update::{PreparedUpdate, UpdateInfo};
 
 const USER_AGENT: &str = concat!("Wowl/", env!("CARGO_PKG_VERSION"));
 
@@ -291,26 +293,23 @@ fn set_lockscreen(state: tauri::State<'_, AppState>) -> Result<(), String> {
     fs::create_dir_all(&dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
 
     let img_path = dir.join("lockscreen.jpg");
-    fs::write(&img_path, &cur.bytes).map_err(|e| e.to_string())?;
+    fs::write(&img_path, &cur.bytes)
+        .map_err(|e| format!("cannot write {}: {e}", img_path.display()))?;
 
-    // .reg file with escaped backslashes.
-    let img_escaped = img_path.to_string_lossy().replace('\\', "\\\\");
-    let reg_path = dir.join("lockscreen.reg");
-    let reg_body = format!(
-        "Windows Registry Editor Version 5.00\r\n\r\n\
-[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PersonalizationCSP]\r\n\
-\"LockScreenImagePath\"=\"{img}\"\r\n\
-\"LockScreenImageUrl\"=\"{img}\"\r\n\
-\"LockScreenImageStatus\"=dword:00000001\r\n",
-        img = img_escaped
+    // Write the values with `reg add` in one elevated cmd — a single UAC
+    // prompt. No intermediate .reg file: security software may refuse to let
+    // a previously imported .reg file be overwritten.
+    let key = r"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP";
+    let img = img_path.to_string_lossy();
+    let cmd = format!(
+        "/c reg add \"{key}\" /v LockScreenImagePath /t REG_SZ /d \"{img}\" /f \
+         && reg add \"{key}\" /v LockScreenImageUrl /t REG_SZ /d \"{img}\" /f \
+         && reg add \"{key}\" /v LockScreenImageStatus /t REG_DWORD /d 1 /f"
     );
-    fs::write(&reg_path, reg_body).map_err(|e| e.to_string())?;
-
-    // Import the .reg elevated — a single UAC prompt.
     let ps = format!(
-        "try {{ $p = Start-Process reg -Verb RunAs -WindowStyle Hidden -PassThru -Wait \
-         -ArgumentList 'import','\"{}\"'; exit $p.ExitCode }} catch {{ exit 1223 }}",
-        reg_path.display()
+        "try {{ $p = Start-Process cmd -Verb RunAs -WindowStyle Hidden -PassThru -Wait \
+         -ArgumentList '{}'; exit $p.ExitCode }} catch {{ exit 1223 }}",
+        cmd.replace('\'', "''")
     );
     let status = std::process::Command::new("powershell")
         .args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &ps])
@@ -394,6 +393,36 @@ fn clear_history() -> Result<(), String> {
     history::clear().map_err(|e| e.to_string())
 }
 
+/// Whether this build can update itself (Windows only for now).
+#[tauri::command]
+fn update_supported() -> bool {
+    update::supported()
+}
+
+#[tauri::command]
+async fn check_for_update(state: tauri::State<'_, AppState>) -> Result<UpdateInfo, String> {
+    update::check(&state.client).await
+}
+
+/// Download `version` and keep it only if its signature verifies. Progress is
+/// reported through the `update-progress` event.
+#[tauri::command]
+async fn download_update(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    version: String,
+) -> Result<PreparedUpdate, String> {
+    update::prepare(&app, &state.client, &version).await
+}
+
+/// Apply a downloaded update and exit; the new version starts on its own.
+#[tauri::command]
+fn install_update(app: tauri::AppHandle, version: String) -> Result<(), String> {
+    update::install(&version)?;
+    app.exit(0);
+    Ok(())
+}
+
 fn target_resolution(app: &tauri::AppHandle) -> (u32, u32) {
     if let Ok(Some(monitor)) = app.primary_monitor() {
         let size = monitor.size();
@@ -431,6 +460,10 @@ pub fn run() {
             client,
             current: Mutex::new(None),
         })
+        .setup(|_| {
+            std::thread::spawn(update::cleanup_old);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             load_settings,
             save_settings,
@@ -447,6 +480,10 @@ pub fn run() {
             reset_lockscreen,
             save_current_image,
             flip_current,
+            update_supported,
+            check_for_update,
+            download_update,
+            install_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -83,6 +83,19 @@ pnpm tauri dev      # Entwicklung mit Hot-Reload
 pnpm tauri build    # portable Wowl.exe nach src-tauri/target/release/
 ```
 
+### Releases und In-App-Updates
+
+Wowl sucht auf GitHub nach einem neueren **veröffentlichten** Release („Über Wowl“ → „Nach Updates suchen“ oder automatisch einmal täglich) und installiert einen Download nur, wenn seine minisign-Signatur zu `src-tauri/updater.pub` passt. Jedes Release braucht daher diese Dateien, jeweils mit einer `.sig` daneben:
+
+| Datei                          | Aktualisiert                              |
+| ------------------------------ | ----------------------------------------- |
+| `Wowl.exe` + `Wowl.exe.sig`    | portable Kopien (die exe ersetzt sich selbst) |
+| `Wowl_<version>_x64-setup.exe` + `.sig` | installierte Kopien (Setup wird gestartet) |
+
+```bash
+pnpm sign-release Wowl.exe Wowl_1.2.0_x64-setup.exe   # Schlüssel: ~/.tauri/wowl-updater.key
+```
+
 ## Technik
 
 - **Backend**: Rust + [Tauri 2](https://tauri.app)
@@ -91,6 +104,6 @@ pnpm tauri build    # portable Wowl.exe nach src-tauri/target/release/
 - **Wallpaper**: [`wallpaper`](https://crates.io/crates/wallpaper) (Modus „Ausfüllen")
 
 ```
-src/            UI (index.html, main.ts, i18n.ts, styles.css)
-src-tauri/src/  config.rs · providers.rs · history.rs · lib.rs
+src/            UI (index.html, main.ts, update.ts, i18n.ts, styles.css)
+src-tauri/src/  config.rs · providers.rs · history.rs · update.rs · lib.rs
 ```

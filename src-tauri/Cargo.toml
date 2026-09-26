@@ -1,6 +1,6 @@
 [package]
 name = "wowl"
-version = "1.1.1"
+version = "1.2.0"
 description = "Search and set desktop & lock-screen wallpapers from image platforms"
 authors = ["Ali Naderi"]
 edition = "2021"
@@ -34,3 +34,8 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 wallpaper = "3"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 
+
+[target.'cfg(windows)'.dependencies]
+# self-update (update.rs)
+semver = "1"
+minisign-verify = "0.2"

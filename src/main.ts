@@ -1,8 +1,10 @@
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { applyI18n, setLanguage, t } from "./i18n";
+import { UpdateController } from "./update";
 
 const appWindow = getCurrentWindow();
 
@@ -18,6 +20,9 @@ interface Settings {
   pixabay_key: string;
   wallhaven_key: string;
   last_save_dir: string;
+  auto_check_updates: boolean;
+  /** Unix seconds of the last update check. */
+  last_update_check: number;
 }
 
 interface Photo {
@@ -99,12 +104,14 @@ const fHistory = $<HTMLInputElement>("f-history");
 const fHistoryMode = $<HTMLSelectElement>("f-history-mode");
 const fTheme = $<HTMLSelectElement>("f-theme");
 const fLanguage = $<HTMLSelectElement>("f-language");
+const fUpdates = $<HTMLSelectElement>("f-updates");
 const keyFields: Record<string, HTMLElement> = {
   unsplash: $("field-key-unsplash"),
   pixabay: $("field-key-pixabay"),
   wallhaven: $("field-key-wallhaven"),
 };
 const termsHint = $("terms-hint");
+const aboutEl = $("about");
 
 /* ===== State ===== */
 let settings: Settings;
@@ -166,6 +173,7 @@ function refreshDynamicText() {
   renderSelectionUi();
   if (currentPhoto) updateCredit(currentPhoto);
   if (configPath) configPathEl.textContent = t("configPath", { path: configPath });
+  updater.render();
 }
 
 /* ===== Photo pipeline ===== */
@@ -660,6 +668,7 @@ function fillForm() {
   fHistoryMode.value = settings.history_mode;
   fTheme.value = settings.theme;
   fLanguage.value = settings.language;
+  fUpdates.value = settings.auto_check_updates ? "auto" : "manual";
   syncProviderDependentUi();
 }
 
@@ -675,6 +684,8 @@ function readForm(): Settings {
     theme: fTheme.value,
     language: fLanguage.value,
     last_save_dir: settings.last_save_dir,
+    auto_check_updates: fUpdates.value === "auto",
+    last_update_check: settings.last_update_check,
   };
 }
 
@@ -714,6 +725,33 @@ function onFormChange() {
   if (settings.provider !== prev.provider) void loadPhoto();
 }
 
+/* ===== About / updates ===== */
+const updater = new UpdateController({
+  autoCheck: () => settings.auto_check_updates !== false,
+  lastCheck: () => Number(settings.last_update_check) || 0,
+  setLastCheck: (seconds) => {
+    settings.last_update_check = seconds;
+    void persist();
+  },
+  prepareExit: async () => {
+    clearTimeout(persistTimer);
+    try {
+      await invoke("save_settings", { settings });
+    } catch {
+      // the update matters more than a settings write
+    }
+  },
+});
+
+function openAbout() {
+  closeMenus();
+  aboutEl.hidden = false;
+}
+
+function closeAbout() {
+  aboutEl.hidden = true;
+}
+
 /* ===== Flip navigation ===== */
 function flipTo(mode: "settings" | "history" | null) {
   closeMenus();
@@ -746,6 +784,15 @@ function wire() {
   $("btn-history").addEventListener("click", () => flipTo("history"));
   $("btn-back").addEventListener("click", () => flipTo(null));
   $("btn-theme").addEventListener("click", cycleTheme);
+  $("btn-about").addEventListener("click", openAbout);
+  $("about-close").addEventListener("click", closeAbout);
+  aboutEl.addEventListener("click", (e) => {
+    if (e.target === aboutEl) closeAbout(); // click on the backdrop
+  });
+  $("about-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    void openUrl("https://github.com/naderi/wowl");
+  });
 
   for (const id of ["btn-min", "btn-min-2"]) {
     $(id).addEventListener("click", () => void appWindow.minimize());
@@ -837,12 +884,15 @@ function wire() {
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      if (anyMenuOpen()) closeMenus();
+      if (!aboutEl.hidden) closeAbout();
+      else if (anyMenuOpen()) closeMenus();
       else if (selectionMode && selectedIds.size) clearSelection();
       else if (selectionMode) setSelectionMode(false);
       else if (flip.classList.contains("is-flipped")) flipTo(null);
       return;
     }
+
+    if (!aboutEl.hidden) return;
 
     // Arrow keys browse history on the photo view.
     if (!flip.classList.contains("is-flipped")) {
@@ -892,6 +942,8 @@ async function init() {
       pixabay_key: "",
       wallhaven_key: "",
       last_save_dir: "",
+      auto_check_updates: true,
+      last_update_check: 0,
     };
     providers = [];
   }
@@ -911,7 +963,12 @@ async function init() {
     })
     .catch(() => {});
 
+  getVersion()
+    .then((v) => ($("about-version").textContent = `v${v}`))
+    .catch(() => {});
+
   void loadPhoto();
+  void updater.init();
 }
 
 window.addEventListener("DOMContentLoaded", init);
