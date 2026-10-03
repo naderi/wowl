@@ -11,8 +11,8 @@
 //!                 process is gone. Windows allows renaming a running exe; the
 //!                 `wowl.toml` and `history/` next to it are untouched.
 //!   * installed — the verified NSIS setup is launched and Wowl exits.
-//!   * MSI / dev builds are only *reported*: their installer (or the build
-//!     tree) owns the files, so Wowl must not rewrite them.
+//!   * Scoop / MSI / dev builds are only *reported*: their package manager (or
+//!     the build tree) owns the files, so Wowl must not rewrite them.
 //!
 //! On other platforms the feature is reported as unsupported.
 
@@ -27,7 +27,7 @@ pub struct UpdateInfo {
     pub current_version: String,
     pub latest_version: String,
     pub update_available: bool,
-    /// "portable" | "installed" | "unsupported"
+    /// "portable" | "installed" | "scoop" | "unsupported"
     pub mode: String,
     pub release_url: String,
     pub notes: String,
@@ -96,6 +96,7 @@ mod imp {
     enum Mode {
         Portable,
         Installed,
+        Scoop,
         Unsupported,
     }
 
@@ -104,6 +105,7 @@ mod imp {
             match self {
                 Mode::Portable => "portable",
                 Mode::Installed => "installed",
+                Mode::Scoop => "scoop",
                 Mode::Unsupported => "unsupported",
             }
         }
@@ -115,6 +117,9 @@ mod imp {
     /// NSIS install directory (has `uninstall.exe`) may be rewritten by Wowl.
     fn detect_mode(exe: &Path) -> Mode {
         let p = exe.to_string_lossy().to_ascii_lowercase().replace('/', "\\");
+        if p.contains("\\scoop\\apps\\") || p.contains("\\scoop\\persist\\") {
+            return Mode::Scoop;
+        }
         if p.contains("\\target\\debug\\")
             || p.contains("\\target\\release\\")
             || p.contains("\\program files")
@@ -212,6 +217,7 @@ mod imp {
 
         info.reason = match asset_names(mode, &latest.to_string()) {
             None => match mode {
+                Mode::Scoop => "scoop",
                 Mode::Unsupported => "managed",
                 _ => "arch",
             }
@@ -463,6 +469,8 @@ mod imp {
         #[test]
         fn classifies_install_locations() {
             let p = |s: &str| detect_mode(Path::new(s));
+            assert_eq!(p(r"D:\Apps\scoop\apps\wowl\current\Wowl.exe"), Mode::Scoop);
+            assert_eq!(p(r"C:\Users\x\scoop\apps\wowl\1.2.0\Wowl.exe"), Mode::Scoop);
             assert_eq!(p(r"D:\src\Wowl\src-tauri\target\debug\wowl.exe"), Mode::Unsupported);
             assert_eq!(p(r"C:\Program Files\Wowl\wowl.exe"), Mode::Unsupported);
             assert_eq!(p(r"D:\Tools\Wowl\Wowl.exe"), Mode::Portable);
@@ -475,6 +483,7 @@ mod imp {
                 assert_eq!(asset_names(Mode::Installed, "1.2.0").unwrap().0, "Wowl_1.2.0_x64-setup.exe");
                 assert_eq!(asset_names(Mode::Installed, "1.2.0").unwrap().1, "Wowl_1.2.0_x64-setup.exe.sig");
             }
+            assert!(asset_names(Mode::Scoop, "1.2.0").is_none());
             assert!(asset_names(Mode::Unsupported, "1.2.0").is_none());
         }
 

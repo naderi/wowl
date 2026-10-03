@@ -1,6 +1,6 @@
 [package]
 name = "wowl"
-version = "1.2.0"
+version = "1.3.0"
 description = "Search and set desktop & lock-screen wallpapers from image platforms"
 authors = ["Ali Naderi"]
 edition = "2021"

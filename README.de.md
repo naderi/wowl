@@ -16,6 +16,13 @@ Modern · minimalistisch · leichtgewichtig · portable
 
 Windows ist bereits verfügbar — siehe [Releases](https://github.com/naderi/wowl/releases) für die portable `.exe` und den Installer. macOS- und Linux-Versionen sind geplant.
 
+Oder mit [Scoop](https://scoop.sh) installieren:
+
+```
+scoop bucket add naderi https://github.com/naderi/scoop-bucket
+scoop install naderi/wowl
+```
+
 ## Funktionen
 
 - **Bildquellen**: Unsplash, Pixabay und Wallhaven (mit Suche), Bing – Bild des Tages, Lorem Picsum
@@ -91,6 +98,8 @@ Wowl sucht auf GitHub nach einem neueren **veröffentlichten** Release („Über
 | ------------------------------ | ----------------------------------------- |
 | `Wowl.exe` + `Wowl.exe.sig`    | portable Kopien (die exe ersetzt sich selbst) |
 | `Wowl_<version>_x64-setup.exe` + `.sig` | installierte Kopien (Setup wird gestartet) |
+
+Mit Scoop installierte Kopien werden nicht verändert; Wowl weist dann nur auf `scoop update wowl` hin.
 
 ```bash
 pnpm sign-release Wowl.exe Wowl_1.2.0_x64-setup.exe   # Schlüssel: ~/.tauri/wowl-updater.key
