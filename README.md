@@ -107,3 +107,7 @@ pnpm sign-release Wowl.exe Wowl_1.2.0_x64-setup.exe   # key: ~/.tauri/wowl-updat
 src/            UI (index.html, main.ts, update.ts, i18n.ts, styles.css)
 src-tauri/src/  config.rs · providers.rs · history.rs · update.rs · lib.rs
 ```
+
+---
+
+© 2026 [Ali Naderi](https://github.com/naderi) · [digitalent.dev](https://digitalent.dev/en/)
