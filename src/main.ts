@@ -791,7 +791,7 @@ function wire() {
   });
   $("about-link").addEventListener("click", (e) => {
     e.preventDefault();
-    void openUrl("https://github.com/naderi/wowl");
+    void openUrl("https://digitalent.dev");
   });
 
   for (const id of ["btn-min", "btn-min-2"]) {
