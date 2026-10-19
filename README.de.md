@@ -117,6 +117,12 @@ src/            UI (index.html, main.ts, update.ts, i18n.ts, styles.css)
 src-tauri/src/  config.rs · providers.rs · history.rs · update.rs · lib.rs
 ```
 
+## Unterstützung
+
+Wenn Wowl dir Zeit spart, kannst du die Entwicklung auf Ko‑fi unterstützen. ☕
+
+<a href='https://ko-fi.com/N7N123QIX0' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+
 ---
 
 © 2026 [Ali Naderi](https://github.com/naderi) · [digitalent.dev](https://digitalent.dev/de/)
